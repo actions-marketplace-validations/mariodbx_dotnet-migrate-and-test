@@ -1,17 +1,17 @@
 {
-  "name": "typescript-action",
-  "description": "GitHub Actions TypeScript template",
+  "name": "dotnet-migrate-and-test",
+  "description": "GitHub Actions TypeScript action to migrate and test .NET projects",
   "version": "0.0.0",
   "author": "",
   "type": "module",
   "private": true,
-  "homepage": "https://github.com/actions/typescript-action",
+  "homepage": "https://github.com/mariodbx/dotnet-migrate-and-test",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/actions/typescript-action.git"
+    "url": "git+https://github.com/mariodbx/dotnet-migrate-and-test.git"
   },
   "bugs": {
-    "url": "https://github.com/actions/typescript-action/issues"
+    "url": "https://github.com/mariodbx/dotnet-migrate-and-test/issues"
   },
   "keywords": [
     "actions"
