@@ -6,6 +6,7 @@ import * as fs from 'fs'
 
 /**
  * Runs tests in the specified test folder with the given configuration and uploads test artifacts.
+ * The artifact is always uploaded, regardless of whether the tests pass or fail.
  *
  * @param getExecOutput - If true, capture the execution output instead of streaming it.
  * @param envName - The name of the environment to set for the test execution (e.g., 'Development', 'Production').
@@ -59,45 +60,64 @@ export async function runTests(
     args.push('--logger', `${testFormat};LogFileName=${resultFilePath}`)
   }
 
-  // Run the tests using the specified method to capture or stream output
-  if (getExecOutput) {
-    const result = await exec.getExecOutput('dotnet', args)
-    core.info(result.stdout)
-    if (result.exitCode !== 0) {
-      throw new Error(`Test execution failed with exit code ${result.exitCode}`)
+  let testExecError: Error | undefined = undefined
+
+  try {
+    // Run the tests using the specified method to capture or stream output
+    if (getExecOutput) {
+      const result = await exec.getExecOutput('dotnet', args)
+      core.info(result.stdout)
+      if (result.exitCode !== 0) {
+        throw new Error(
+          `Test execution failed with exit code ${result.exitCode}`
+        )
+      }
+    } else {
+      const exitCode = await exec.exec('dotnet', args)
+      if (exitCode !== 0) {
+        throw new Error(`Test execution failed with exit code ${exitCode}`)
+      }
     }
-  } else {
-    const exitCode = await exec.exec('dotnet', args)
-    if (exitCode !== 0) {
-      throw new Error(`Test execution failed with exit code ${exitCode}`)
+
+    core.info('Tests completed successfully.')
+  } catch (error: unknown) {
+    // Capture the test error but do not rethrow immediately, to allow artifact upload
+    if (error instanceof Error) {
+      testExecError = error
+      core.error(`Test execution encountered an error: ${error.message}`)
+    } else {
+      testExecError = new Error(
+        'Test execution failed due to an unknown error.'
+      )
+      core.error('Test execution failed due to an unknown error.')
+    }
+  } finally {
+    // Always attempt to upload the test artifacts if a result file was generated.
+    if (resultFilePath) {
+      core.info(`Looking for test result file at ${resultFilePath}...`)
+      const artifactClient = new artifact.DefaultArtifactClient()
+
+      try {
+        const { id, size } = await artifactClient.uploadArtifact(
+          'test-results', // Artifact name
+          [resultFilePath], // List of files to upload
+          resultFolder, // Folder containing the result file
+          { retentionDays: 7 } // Set retention days for the artifact
+        )
+        core.info(`Created artifact with id: ${id} (bytes: ${size})`)
+      } catch (uploadError: unknown) {
+        if (uploadError instanceof Error) {
+          core.error(`Failed to upload test results: ${uploadError.message}`)
+        } else {
+          core.error('Failed to upload test results due to an unknown error.')
+        }
+      }
     }
   }
 
-  core.info('Tests completed successfully.')
-
-  // Upload test artifact if a result file was generated
-  if (resultFilePath) {
-    core.info(`Looking for test result file at ${resultFilePath}...`)
-
-    const artifactClient = new artifact.DefaultArtifactClient()
-
-    try {
-      const { id, size } = await artifactClient.uploadArtifact(
-        'test-results', // Artifact name
-        [resultFilePath], // List of files to upload
-        resultFolder, // Folder containing the result file
-        {
-          retentionDays: 7 // Set retention days for the artifact
-        }
-      )
-      core.info(`Created artifact with id: ${id} (bytes: ${size})`)
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        core.setFailed(`Failed to upload test results: ${error.message}`)
-      } else {
-        core.setFailed('Failed to upload test results due to an unknown error.')
-      }
-    }
+  // If there was an error during test execution, throw it now to mark the action as failed.
+  if (testExecError) {
+    throw testExecError
   }
 }
 

@@ -1,7 +1,7 @@
 name: 'Dotnet Migrate and Test'
 description:
-  'Runs tests and handles EF Core migrations including
-  rollback on failure for a .NET project,'
+  'Runs tests and handles EF Core migrations including rollback on failure for a
+  .NET project,'
 author: Mario De Benedictis
 
 # Add your action's branding here. This will appear on the GitHub Marketplace.
