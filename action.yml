@@ -1,6 +1,8 @@
-name: The name of your action here
-description: Provide a description here
-author: Your name or organization here
+name: 'Dotnet Build and Test'
+description:
+  'Builds a .NET project, runs tests and handles EF Core migrations including
+  rollback on failure'
+author: Mario De Benedictis
 
 # Add your action's branding here. This will appear on the GitHub Marketplace.
 branding:
@@ -9,15 +11,57 @@ branding:
 
 # Define your inputs here.
 inputs:
-  milliseconds:
-    description: Your input description here
+  getExecOutput:
+    description: 'Verbosity of the workflow'
     required: true
-    default: '1000'
+    default: 'true'
+  envName:
+    description: 'Environment name for ASP.NET Core'
+    required: false
+    default: 'Test'
+  dotnetRoot:
+    description: 'Environment name for ASP.NET Core'
+    required: false
+    default: '/usr/bin/dotnet'
 
-# Define your outputs here.
+  skipMigrations:
+    description: 'Skip applying migrations'
+    required: false
+    default: 'false'
+  migrationsFolder:
+    description: 'Path to the migrations folder (default: testFolder)'
+    required: false
+  useGlobalDotnetEf:
+    description: 'Use globally installed dotnet-ef instead of local'
+    required: false
+    default: 'false'
+
+  skipTests:
+    description: 'Skip testing'
+    required: false
+    default: 'false'
+  testFolder:
+    description: 'Path to the test project folder'
+    required: true
+  testFormat:
+    description: 'Format for test results (e.g., trx, html, json)'
+    required: false
+    default: 'html'
+  testOutputFolder:
+    description: 'Path to the test results output folder'
+    required: false
+    default: 'TestResults'
+  rollbackMigrationsOnTestFailed:
+    description: 'Rollback migrations if tests fail'
+    required: false
+
 outputs:
-  time:
-    description: Your output description here
+  lastMigration:
+    description: 'The last applied database migration'
+  startTime:
+    description: time when workflow started
+  endTime:
+    description: time when workflow finished
 
 runs:
   using: node20
